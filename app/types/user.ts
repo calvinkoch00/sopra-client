@@ -4,4 +4,7 @@ export interface User {
   username: string | null;
   token: string | null;
   status: string | null;
+  online?: boolean;
+  createdAt: string | null;
+  birthDate: string | null;
 }
