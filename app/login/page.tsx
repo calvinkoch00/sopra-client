@@ -1,85 +1,99 @@
-"use client"; // For components that need React hooks and browser APIs, SSR (server side rendering) has to be disabled. Read more here: https://nextjs.org/docs/pages/building-your-application/rendering/server-side-rendering
+"use client";
 
-import { useRouter } from "next/navigation"; // use NextJS router for navigation
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/useApi";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { User } from "@/types/user";
-import { Button, Form, Input } from "antd";
-// Optionally, you can import a CSS module or file for additional styling:
-// import styles from "@/styles/page.module.css";
+import { Button, Card, Form, Input, DatePicker } from "antd";
 
-interface FormFieldProps {
-  label: string;
-  value: string;
-}
-
-const Login: React.FC = () => {
+const AuthForm: React.FC = () => {
   const router = useRouter();
   const apiService = useApi();
   const [form] = Form.useForm();
-  // useLocalStorage hook example use
-  // The hook returns an object with the value and two functions
-  // Simply choose what you need from the hook:
-  const {
-    // value: token, // is commented out because we do not need the token value
-    set: setToken, // we need this method to set the value of the token to the one we receive from the POST request to the backend server API
-    // clear: clearToken, // is commented out because we do not need to clear the token when logging in
-  } = useLocalStorage<string>("token", ""); // note that the key we are selecting is "token" and the default value we are setting is an empty string
-  // if you want to pick a different token, i.e "usertoken", the line above would look as follows: } = useLocalStorage<string>("usertoken", "");
+  const [isLoginMode, setIsLoginMode] = useState(true); // Toggle state
 
-  const handleLogin = async (values: FormFieldProps) => {
+  const { set: setToken } = useLocalStorage<string>("token", "");
+
+  // Handles login or registration submission
+  const handleSubmit = async (values: any) => {
     try {
-      // Call the API service and let it handle JSON serialization and error handling
-      const response = await apiService.post<User>("/users", values);
+        const formattedValues = {
+            username: values.username,
+            password: values.password,
+        };
 
-      // Use the useLocalStorage hook that returned a setter function (setToken in line 41) to store the token if available
-      if (response.token) {
-        setToken(response.token);
-      }
+        const endpoint = isLoginMode ? "/login" : "/register";
+        const response = await apiService.post(endpoint, formattedValues);
 
-      // Navigate to the user overview
-      router.push("/users");
+        // ✅ If registering, immediately log in using the same credentials
+        if (!isLoginMode) {
+            const loginResponse = await apiService.post("/login", formattedValues);
+            if (loginResponse.token) {
+                setToken(loginResponse.token);
+                localStorage.setItem("userId", loginResponse.id);
+                router.push("/users"); // Redirect to users page
+            }
+        } else {
+            // ✅ If logging in directly, store token and redirect
+            if (response.token) {
+                setToken(response.token);
+                localStorage.setItem("userId", response.id);
+                router.push("/users");
+            }
+        }
     } catch (error) {
-      if (error instanceof Error) {
-        alert(`Something went wrong during the login:\n${error.message}`);
-      } else {
-        console.error("An unknown error occurred during login.");
-      }
+        console.error("Error:", error);
+        alert(`Something went wrong:\n${error.message}`);
     }
-  };
+};
 
   return (
-    <div className="login-container">
-      <Form
-        form={form}
-        name="login"
-        size="large"
-        variant="outlined"
-        onFinish={handleLogin}
-        layout="vertical"
+    <div className="auth-container">
+      <Card
+        title={isLoginMode ? "Login" : "Register"}
+        className="auth-card"
       >
-        <Form.Item
-          name="username"
-          label="Username"
-          rules={[{ required: true, message: "Please input your username!" }]}
+        <Form
+          form={form}
+          name="authForm"
+          size="large"
+          onFinish={handleSubmit}
+          layout="vertical"
         >
-          <Input placeholder="Enter password" />
-        </Form.Item>
-        <Form.Item
-          name="password"
-          label="Password"
-          rules={[{ required: true, message: "Please input your password!" }]}
-        >
-          <Input placeholder="Enter Password" />
-        </Form.Item>
-        <Form.Item>
-          <Button type="primary" htmlType="submit" className="login-button">
-            Login
-          </Button>
-        </Form.Item>
-      </Form>
+          {/* Username Field */}
+          <Form.Item
+            name="username"
+            label="Username"
+            rules={[{ required: true, message: "Please input your username!" }]}
+          >
+            <Input placeholder="Enter Username" />
+          </Form.Item>
+
+          {/* Password Field */}
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[{ required: true, message: "Please input your password!" }]}
+          >
+            <Input.Password placeholder="Enter Password" />
+          </Form.Item>
+
+          {/* Submit Button */}
+          <Form.Item>
+            <Button type="primary" htmlType="submit" className="auth-button">
+              {isLoginMode ? "Login" : "Register"}
+            </Button>
+          </Form.Item>
+        </Form>
+
+        {/* Toggle Button */}
+        <Button type="link" onClick={() => setIsLoginMode(!isLoginMode)}>
+          {isLoginMode ? "Don't have an account? Register" : "Already have an account? Login"}
+        </Button>
+      </Card>
     </div>
   );
 };
 
-export default Login;
+export default AuthForm;

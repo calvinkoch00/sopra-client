@@ -1,66 +1,76 @@
-// your code here for S2 to display a single user profile after having clicked on it
-// each user has their own slug /[id] (/1, /2, /3, ...) and is displayed using this file
-// try to leverage the component library from antd by utilizing "Card" to display the individual user
-// import { Card } from "antd"; // similar to /app/users/page.tsx
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
-"use client"; 
+"use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useApi } from "@/hooks/useApi";
-import { useRouter } from "next/navigation";
-import { Card, Button, Spin, Alert } from "antd";
+import useLocalStorage from "@/hooks/useLocalStorage";
 import { User } from "@/types/user";
+import { Button, Card, Descriptions, Spin, Alert, message } from "antd";
 
-export const dynamic = "force-dynamic";
-
-interface UserPageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function UserPage({ params }: UserPageProps) {
-  const [userId, setUserId] = useState<string | null>(null);
-  const apiService = useApi();
+const UserProfile: React.FC = () => {
   const router = useRouter();
+  const { id } = useParams();
+  const apiService = useApi();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { clear: clearToken } = useLocalStorage<string>("token", "");
 
   useEffect(() => {
-    params.then((resolvedParams) => {
-      setUserId(resolvedParams.id);
-    });
-  }, [params]);
-
-  useEffect(() => {
-    if (!userId) return;
-
     const fetchUser = async () => {
       try {
-        const data = await apiService.get<User>(`/users/${userId}`);
-        setUser(data);
+        const token = localStorage.getItem("token");
+        const userId = localStorage.getItem("userId");
+
+        if (!token || !userId || userId !== id) {
+          console.error("Unauthorized access, redirecting to login.");
+          router.push("/login");
+          return;
+        }
+
+        setLoading(true);
+        const userData = await apiService.get<User>(`/users/${id}`, {
+          headers: { Authorization: `Bearer ${token}`, "User-Id": userId },
+        });
+
+        setUser(userData);
       } catch (err) {
         setError("Failed to fetch user data.");
+        router.push("/login");
       } finally {
         setLoading(false);
       }
     };
 
     fetchUser();
-  }, [userId, apiService]);
-
-  if (loading) return <Spin size="large" />;
-  if (error) return <Alert message={error} type="error" />;
+  }, [id, apiService, router]);
 
   return (
-    <div style={{ maxWidth: 600, margin: "20px auto" }}>
-      <Card title={`${user?.name} (@${user?.username})`} bordered>
-        <p><strong>ID:</strong> {user?.id}</p>
-        <p><strong>Online Status:</strong> {user?.online ? "Online ✅" : "Offline ❌"}</p>
-        <p><strong>Account Created:</strong> {new Date(user?.createdAt || "").toLocaleDateString()}</p>
-        {user?.birthDate && <p><strong>Birth Date:</strong> {new Date(user.birthDate).toLocaleDateString()}</p>}
-        <Button onClick={() => router.push("/users")} type="primary">Back to Users</Button>
+    <div className="card-container">
+      <Card title="User Profile" className="dashboard-container">
+        {loading ? (
+          <Spin size="large" />
+        ) : error ? (
+          <Alert message={error} type="error" />
+        ) : user ? (
+          <>
+            <Descriptions bordered column={1}>
+              <Descriptions.Item label="Username">{user.username}</Descriptions.Item>
+              <Descriptions.Item label="Name">{user.name || "N/A"}</Descriptions.Item>
+              <Descriptions.Item label="Status">{user.status}</Descriptions.Item>
+              <Descriptions.Item label="Birthdate">
+                {user.birthdate ? new Date(user.birthdate).toLocaleDateString() : "Not set"}
+              </Descriptions.Item>
+              <Descriptions.Item label="User ID">{user.id}</Descriptions.Item>
+            </Descriptions>
+            <Button onClick={() => router.push("/users")} type="default" style={{ marginTop: 16 }}>Back to Users</Button>
+          </>
+        ) : (
+          <Alert message="User not found." type="warning" />
+        )}
       </Card>
     </div>
   );
-}
+};
+
+export default UserProfile;
