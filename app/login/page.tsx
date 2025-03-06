@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/useApi";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { Button, Card, Form, Input, message } from "antd";
-import process from "node:process";
 
 const AuthForm: React.FC = () => {
   const router = useRouter();
@@ -29,10 +28,29 @@ const AuthForm: React.FC = () => {
       };
 
       const endpoint = isLoginMode ? "/login" : "/register";
-      const response = await apiService.post(endpoint, formattedValues);
 
+      interface AuthResponse {
+        token: string;
+        id: string;
+      }
+      
+
+      const response = await apiService.post<AuthResponse>(endpoint, formattedValues);
+
+      if (response.token) {  // ✅ Now TypeScript knows `token` exists
+        setToken(response.token);
+        localStorage.setItem("token", response.token);
+        localStorage.setItem("userId", response.id);
+        router.push("/users");
+      }
       if (!isLoginMode) {
-        const loginResponse = await apiService.post("/login", formattedValues);
+        interface LoginResponse {
+          token: string;
+          id: string;
+        }
+        
+        const loginResponse = await apiService.post<LoginResponse>("/login", formattedValues);
+        
         if (loginResponse.token) {
           setToken(loginResponse.token);
           localStorage.setItem("token", loginResponse.token);

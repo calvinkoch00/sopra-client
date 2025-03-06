@@ -55,7 +55,7 @@ const UserProfile: React.FC = () => {
         const userData = await response.json();
         setUser(userData);
         setEditableUsername(userData.username);
-        setEditableBirthdate(userData.birthdate);
+        setEditableBirthdate(userData.birthDate);
       } catch (err) {
         console.error("Error fetching user:", err);
         setError("Error fetching user data.");
@@ -65,7 +65,7 @@ const UserProfile: React.FC = () => {
     };
 
     fetchUser();
-  }, [id, router]);
+  }, [id, router, token, userId]);
 
   const handleSaveChanges = async () => {
     if (!token || !userId) {
@@ -76,7 +76,7 @@ const UserProfile: React.FC = () => {
     try {
       const updatedData: Partial<User> = {};
       if (editableUsername !== user?.username) updatedData.username = editableUsername;
-      if (editableBirthdate !== user?.birthdate) updatedData.birthdate = editableBirthdate;
+      if (editableBirthdate !== user?.birthDate) updatedData.birthDate = editableBirthdate;
   
       if (Object.keys(updatedData).length === 0) {
         message.info("No changes detected.");
@@ -152,7 +152,7 @@ const UserProfile: React.FC = () => {
   
               <Descriptions.Item label={<span style={{ color: "white" }}>Creation Date</span>}>
                 <span style={{ color: "white" }}>
-                  {user.creationDate ? new Date(user.creationDate).toLocaleDateString() : "Not set"}
+                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "Not set"}
                 </span>
               </Descriptions.Item>
   
@@ -167,7 +167,7 @@ const UserProfile: React.FC = () => {
                   </div>
                 ) : (
                   <span style={{ color: "white" }}>
-                    {user.birthdate ? new Date(user.birthdate).toLocaleDateString() : "Not set"}
+                    {user.birthDate ? new Date(user.birthDate).toLocaleDateString() : "Not set"}
                   </span>
                 )}
               </Descriptions.Item>

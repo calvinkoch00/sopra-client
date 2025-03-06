@@ -85,14 +85,19 @@ const Dashboard: React.FC = () => {
 
         const data = await response.json();
         setUsers(data);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error fetching users:", error);
-
-        if (error.response?.status === 401) {
-          console.warn("Session expired, redirecting to login.");
-          router.push("/login");
+      
+        if (typeof error === "object" && error !== null && "response" in error) {
+          const axiosError = error as { response?: { status?: number } };
+          if (axiosError.response?.status === 401) {
+            console.warn("Session expired, redirecting to login.");
+            router.push("/login");
+          } else {
+            message.error("Failed to fetch users. Please try again.");
+          }
         } else {
-          message.error("Failed to fetch users. Please try again.");
+          message.error("An unexpected error occurred.");
         }
       }
     };
