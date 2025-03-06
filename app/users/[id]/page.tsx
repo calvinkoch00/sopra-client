@@ -16,12 +16,10 @@ const UserProfile: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
   
-  // ✅ Directly retrieve session data instead of relying on useEffect
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   const isOwnProfile = userId && id && userId === id.toString();
 
-  // Editable fields
   const [editableUsername, setEditableUsername] = useState("");
   const [editableBirthdate, setEditableBirthdate] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -88,14 +86,13 @@ const UserProfile: React.FC = () => {
       const response = await fetch(`${apiBase}/users/${id}`, {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${token}`, // ✅ Token is now used for validation
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(updatedData), // ✅ No `requestingUserId`
+        body: JSON.stringify(updatedData),
       });
   
       if (response.status === 204) {
-        // ✅ 204 No Content - Update local state manually
         messageApi.open({
           type: "success",
           content: <span style={{ color: "black" }}>Profile updated successfully!</span>,

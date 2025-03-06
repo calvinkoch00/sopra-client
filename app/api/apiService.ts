@@ -33,7 +33,6 @@ export class ApiService {
           errorDetail = JSON.stringify(errorInfo);
         }
       } catch {
-        // If parsing fails, keep using res.statusText
       }
       const detailedMessage = `${errorMessage} (${res.status}: ${errorDetail})`;
       const error: ApplicationError = new Error(detailedMessage) as ApplicationError;
@@ -67,8 +66,8 @@ export class ApiService {
     const res = await fetch(url.toString(), {
       method: "GET",
       headers: {
-        ...this.defaultHeaders, // ✅ Ensure default headers are included
-        ...customHeaders, // ✅ Include any custom headers (like Authorization)
+        ...this.defaultHeaders, 
+        ...customHeaders,
       },
     });
   

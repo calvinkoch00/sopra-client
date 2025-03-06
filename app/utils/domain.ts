@@ -1,14 +1,10 @@
 import { isProduction } from "@/utils/environment";
 
-/**
- * Returns the API base URL based on the current environment.
- * It prioritizes `NEXT_PUBLIC_API_URL`, then falls back to production or localhost.
- */
 export function getApiDomain(): string {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim(); // ✅ Ensure it's not empty
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
   const prodUrl = process.env.NEXT_PUBLIC_PROD_API_URL || 
     "https://sopra-server-451813.oa.r.appspot.com";
-  const devUrl = "http://localhost:8080"; // Used only if no env variable is set
+  const devUrl = "http://localhost:8080";
 
   if (!apiUrl && typeof window !== "undefined") {
     console.warn(

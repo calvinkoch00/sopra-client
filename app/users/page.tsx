@@ -10,7 +10,6 @@ import type { TableProps } from "antd";
 
 import { getApiDomain } from "@/utils/domain";
 
-// ✅ Only keep the Username column
 const columns: TableProps<User>["columns"] = [
   {
     title: "Username",
@@ -39,7 +38,6 @@ const Dashboard: React.FC = () => {
 
       const apiBase = getApiDomain();
 
-      // ✅ Correct API call for logout (PUT request)
       const response = await fetch(`${apiBase}/users/${userId}/logout`, {
         method: "PUT",
         headers: {
@@ -113,7 +111,7 @@ const Dashboard: React.FC = () => {
       title="User Overview" 
       loading={!users} 
       className="dashboard-container"
-      style={{ minWidth: "330px" }} // ✅ Ensures card doesn't shrink below 500px
+      style={{ minWidth: "330px" }}
     >
         {users && (
           <>
@@ -144,7 +142,7 @@ const Dashboard: React.FC = () => {
                 },
               }}
             />
-            {/* ✅ Make Logout button red */}
+            {}
             <Button
               onClick={handleLogout}
               type="primary"

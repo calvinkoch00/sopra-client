@@ -37,7 +37,7 @@ const AuthForm: React.FC = () => {
 
       const response = await apiService.post<AuthResponse>(endpoint, formattedValues);
 
-      if (response.token) {  // ✅ Now TypeScript knows `token` exists
+      if (response.token) {
         setToken(response.token);
         localStorage.setItem("token", response.token);
         localStorage.setItem("userId", response.id);
@@ -68,7 +68,7 @@ const AuthForm: React.FC = () => {
           router.push("/users");
         }
       }
-    } catch (error: unknown) {  // <-- Fix: changed from `any` to `unknown`
+    } catch (error: unknown) {
       if (process.env.NODE_ENV === "development") {
         console.error("🚨 Login Error:", error);
       }
