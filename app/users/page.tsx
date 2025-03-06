@@ -8,21 +8,14 @@ import { User } from "@/types/user";
 import { Button, Card, Table, message } from "antd";
 import type { TableProps } from "antd";
 
+import { getApiDomain } from "@/utils/domain";
+
+// ✅ Only keep the Username column
 const columns: TableProps<User>["columns"] = [
   {
     title: "Username",
     dataIndex: "username",
     key: "username",
-  },
-  {
-    title: "Name",
-    dataIndex: "name",
-    key: "name",
-  },
-  {
-    title: "Id",
-    dataIndex: "id",
-    key: "id",
   },
 ];
 
@@ -44,15 +37,18 @@ const Dashboard: React.FC = () => {
         return;
       }
 
-      const response = await fetch(`/users?userId=${userId}`, {
-        method: "GET",
+      const apiBase = getApiDomain();
+
+      // ✅ Correct API call for logout (PUT request)
+      const response = await fetch(`${apiBase}/users/${userId}/logout`, {
+        method: "PUT",
         headers: {
-          Authorization: token,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
 
-      if (response.status === 200 || response.message === "User successfully logged out.") {
+      if (response.ok) {
         clearToken();
         localStorage.removeItem("userId");
         router.push("/login");
@@ -71,27 +67,27 @@ const Dashboard: React.FC = () => {
       try {
         const token = localStorage.getItem("token");
         const userId = localStorage.getItem("userId");
-    
+
         if (!token || !userId) {
           console.error("No session found, redirecting to login.");
           router.push("/login");
           return;
         }
-    
-        // ✅ Use GET method and send userId as a query parameter
-        const response = await fetch(`/users?userId=${userId}`, {
+
+        const apiBase = getApiDomain();
+        const response = await fetch(`${apiBase}/users?userId=${userId}`, {
           method: "GET",
           headers: {
-            Authorization: `${token}`,  // ✅ Ensure token is passed correctly
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
-    
-        const data = await response.json(); // ✅ Properly parse the JSON response
-        setUsers(data); // ✅ Correctly set the users// ✅ Fix: use response.data
+
+        const data = await response.json();
+        setUsers(data);
       } catch (error) {
         console.error("Error fetching users:", error);
-    
+
         if (error.response?.status === 401) {
           console.warn("Session expired, redirecting to login.");
           router.push("/login");
@@ -100,22 +96,58 @@ const Dashboard: React.FC = () => {
         }
       }
     };
-  
+
     if (localStorage.getItem("token")) {
       fetchUsers();
     }
   }, [apiService, router]);
 
   return (
-    <div className="card-container">
-      <Card title="Get all users from secure endpoint:" loading={!users} className="dashboard-container">
+    <div className="card-container" style={{ display: "flex", justifyContent: "center" }}> 
+    <Card 
+      title="User Overview" 
+      loading={!users} 
+      className="dashboard-container"
+      style={{ minWidth: "330px" }} // ✅ Ensures card doesn't shrink below 500px
+    >
         {users && (
           <>
-            <Table<User> columns={columns} dataSource={users} rowKey="id" onRow={(row) => ({
-              onClick: () => router.push(`/users/${row.id}`),
-              style: { cursor: "pointer" },
-            })} />
-            <Button onClick={handleLogout} type="primary">Logout</Button>
+            <Table<User>
+              columns={columns}
+              dataSource={users}
+              rowKey="id"
+              onRow={(row) => ({
+                onClick: () => router.push(`/users/${row.id}`),
+                style: { cursor: "pointer" },
+              })}
+              pagination={{
+                position: ["bottomRight"],
+                itemRender: (page, type, originalElement) => {
+                  if (type === "prev") {
+                    return <a style={{ color: "white", fontSize: "16px", padding: "4px 10px" }}>←</a>;
+                  }
+                  if (type === "next") {
+                    return <a style={{ color: "white", fontSize: "16px", padding: "4px 10px" }}>→</a>;
+                  }
+                  return (<span>{page}</span>);
+                },
+                showSizeChanger: false,
+                showLessItems: true,
+                style: {
+                  border: "none",
+                  background: "none",
+                },
+              }}
+            />
+            {/* ✅ Make Logout button red */}
+            <Button
+              onClick={handleLogout}
+              type="primary"
+              danger
+              style={{ marginTop: 16 }}
+            >
+              Logout
+            </Button>
           </>
         )}
       </Card>

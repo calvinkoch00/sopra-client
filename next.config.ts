@@ -1,7 +1,10 @@
-import type { NextConfig } from "next";
+// Ensure this file is treated as a CommonJS module
+/** @type {import('next').NextConfig} */
 
-const nextConfig: NextConfig = {
-  /* config options here */
+import "@ant-design/v5-patch-for-react-19"; // ✅ Just import it, no need to assign it
+
+const nextConfig = {
+  reactStrictMode: true,
 };
 
-export default nextConfig;
+export default nextConfig; // ✅ Use ES module export

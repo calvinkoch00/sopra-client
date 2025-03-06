@@ -33,7 +33,8 @@ export default function useLocalStorage<T>(
     try {
       const stored = globalThis.localStorage.getItem(key);
       if (stored) {
-        setValue(JSON.parse(stored) as T);
+        // ✅ Fix: Only parse if it is actually JSON
+        setValue(stored.startsWith("{") || stored.startsWith("[") ? JSON.parse(stored) : (stored as T));
       }
     } catch (error) {
       console.error(`Error reading localStorage key "${key}":`, error);
@@ -44,9 +45,10 @@ export default function useLocalStorage<T>(
   const set = (newVal: T) => {
     setValue(newVal);
     if (typeof window !== "undefined") {
-      globalThis.localStorage.setItem(key, JSON.stringify(newVal));
+        const valueToStore = typeof newVal === "string" ? newVal : JSON.stringify(newVal);
+        globalThis.localStorage.setItem(key, valueToStore);
     }
-  };
+};
 
   // Removes the key from localStorage and resets the state
   const clear = () => {

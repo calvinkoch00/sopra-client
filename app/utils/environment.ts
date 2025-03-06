@@ -8,3 +8,6 @@
 export function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
 }
+
+// Check if API_BASE_URL is set in .env, fallback to production URL
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://sopra-server-451813.oa.r.appspot.com";

@@ -3,67 +3,215 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useApi } from "@/hooks/useApi";
-import useLocalStorage from "@/hooks/useLocalStorage";
 import { User } from "@/types/user";
-import { Button, Card, Descriptions, Spin, Alert, message } from "antd";
+import { Button, Card, Descriptions, Spin, Alert, Input, message } from "antd";
+import { getApiDomain } from "@/utils/domain";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const UserProfile: React.FC = () => {
   const router = useRouter();
-  const { id } = useParams();
+  const { id } = useParams(); // ✅ ID from URL
   const apiService = useApi();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { clear: clearToken } = useLocalStorage<string>("token", "");
+  const [messageApi, contextHolder] = message.useMessage();
+  
+  // ✅ Directly retrieve session data instead of relying on useEffect
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
+  const isOwnProfile = userId && id && userId === id.toString(); // ✅ Fix potential type mismatch
+
+  // Editable fields
+  const [editableUsername, setEditableUsername] = useState("");
+  const [editableBirthdate, setEditableBirthdate] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
+      if (!token || !userId) {
+        console.error("🚨 No session found, redirecting to login.");
+        router.push("/login");
+        return;
+      }
+    
+      setLoading(true);
+    
       try {
-        const token = localStorage.getItem("token");
-        const userId = localStorage.getItem("userId");
-
-        if (!token || !userId || userId !== id) {
-          console.error("Unauthorized access, redirecting to login.");
-          router.push("/login");
+        const apiBase = getApiDomain();
+        const response = await fetch(`${apiBase}/users/${id}?userId=${userId}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+    
+        if (!response.ok) {
+          console.error("Failed to fetch user:", response.statusText);
+          setError("Failed to fetch user data.");
           return;
         }
-
-        setLoading(true);
-        const userData = await apiService.get<User>(`/users/${id}`, {
-          headers: { Authorization: `Bearer ${token}`, "User-Id": userId },
-        });
-
+    
+        const userData = await response.json();
         setUser(userData);
+        setEditableUsername(userData.username);
+        setEditableBirthdate(userData.birthdate);
       } catch (err) {
-        setError("Failed to fetch user data.");
-        router.push("/login");
+        console.error("Error fetching user:", err);
+        setError("Error fetching user data.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchUser();
-  }, [id, apiService, router]);
+  }, [id, router]);
+
+  const handleSaveChanges = async () => {
+    if (!token || !userId) {
+      message.error("Session expired. Please log in again.");
+      return;
+    }
+  
+    try {
+      const updatedData: Partial<User> = {};
+      if (editableUsername !== user?.username) updatedData.username = editableUsername;
+      if (editableBirthdate !== user?.birthdate) updatedData.birthdate = editableBirthdate;
+  
+      if (Object.keys(updatedData).length === 0) {
+        message.info("No changes detected.");
+        setIsEditing(false);
+        return;
+      }
+  
+      const apiBase = getApiDomain();
+      const response = await fetch(`${apiBase}/users/${id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`, // ✅ Token is now used for validation
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedData), // ✅ No `requestingUserId`
+      });
+  
+      if (response.status === 204) {
+        // ✅ 204 No Content - Update local state manually
+        messageApi.open({
+          type: "success",
+          content: <span style={{ color: "black" }}>Profile updated successfully!</span>,
+        });
+  
+        setUser((prevUser) => (prevUser ? { ...prevUser, ...updatedData } : prevUser));
+        setIsEditing(false);
+        return;
+      }
+  
+      if (!response.ok) {
+        throw new Error("Failed to update user.");
+      }
+  
+    } catch (err) {
+      console.error("Error updating user:", err);
+      
+      messageApi.open({
+        type: "error",
+        content: <span style={{ color: "black" }}>Failed to update profile. Try again.</span>,
+      });
+    }
+  };
 
   return (
-    <div className="card-container">
-      <Card title="User Profile" className="dashboard-container">
+    <div className="card-container" style={{ color: "white" }}>
+      {contextHolder}
+      <Card
+        title={<span style={{ color: "white" }}>Profile Page</span>} 
+        className="dashboard-container"
+      >
         {loading ? (
           <Spin size="large" />
         ) : error ? (
           <Alert message={error} type="error" />
         ) : user ? (
           <>
-            <Descriptions bordered column={1}>
-              <Descriptions.Item label="Username">{user.username}</Descriptions.Item>
-              <Descriptions.Item label="Name">{user.name || "N/A"}</Descriptions.Item>
-              <Descriptions.Item label="Status">{user.status}</Descriptions.Item>
-              <Descriptions.Item label="Birthdate">
-                {user.birthdate ? new Date(user.birthdate).toLocaleDateString() : "Not set"}
+            <Descriptions bordered column={1} style={{ color: "white" }}>
+              <Descriptions.Item label={<span style={{ color: "white" }}>Username</span>}>
+                {isOwnProfile && isEditing ? (
+                  <Input 
+                    value={editableUsername} 
+                    onChange={(e) => setEditableUsername(e.target.value)}
+                    style={{ color: "white", backgroundColor: "#333", borderColor: "white" }} 
+                  />
+                ) : (
+                  <span style={{ color: "white" }}>{user.username}</span>
+                )}
               </Descriptions.Item>
-              <Descriptions.Item label="User ID">{user.id}</Descriptions.Item>
+  
+              <Descriptions.Item label={<span style={{ color: "white" }}>Status</span>}>
+                <span style={{ color: "white" }}>{user.status}</span>
+              </Descriptions.Item>
+  
+              <Descriptions.Item label={<span style={{ color: "white" }}>Creation Date</span>}>
+                <span style={{ color: "white" }}>
+                  {user.creationDate ? new Date(user.creationDate).toLocaleDateString() : "Not set"}
+                </span>
+              </Descriptions.Item>
+  
+              <Descriptions.Item label={<span style={{ color: "white" }}>Birthdate</span>}>
+                {isOwnProfile && isEditing ? (
+                  <div className="custom-datepicker-wrapper">
+                    <DatePicker
+                      selected={editableBirthdate ? new Date(editableBirthdate) : null}
+                      onChange={(date) => setEditableBirthdate(date ? date.toISOString().split("T")[0] : null)}
+                      className="custom-datepicker"
+                    />
+                  </div>
+                ) : (
+                  <span style={{ color: "white" }}>
+                    {user.birthdate ? new Date(user.birthdate).toLocaleDateString() : "Not set"}
+                  </span>
+                )}
+              </Descriptions.Item>
             </Descriptions>
-            <Button onClick={() => router.push("/users")} type="default" style={{ marginTop: 16 }}>Back to Users</Button>
+  
+            {isOwnProfile && (
+              <>
+                {isEditing ? (
+                  <>
+                    <Button 
+                      type="primary" 
+                      onClick={handleSaveChanges} 
+                      style={{ marginTop: 16 }}
+                    >
+                      Save Changes
+                    </Button>
+                    <Button 
+                      onClick={() => setIsEditing(false)} 
+                      style={{ marginTop: 16, marginLeft: 8 }}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    onClick={() => setIsEditing(true)} 
+                    type="primary" 
+                    style={{ marginTop: 16, backgroundColor: "#4CAF50", borderColor: "#4CAF50" }}
+                  >
+                    Edit Profile
+                  </Button>
+                )}
+              </>
+            )}
+  
+            <Button 
+              onClick={() => router.push("/users")} 
+              type="default" 
+              style={{ marginTop: 16, marginLeft: 8 }}
+            >
+              Back to Users
+            </Button>
           </>
         ) : (
           <Alert message="User not found." type="warning" />
@@ -71,6 +219,6 @@ const UserProfile: React.FC = () => {
       </Card>
     </div>
   );
-};
+}
 
 export default UserProfile;
