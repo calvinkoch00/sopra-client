@@ -31,10 +31,9 @@ const AuthForm: React.FC = () => {
   
       const endpoint = isLoginMode ? "/login" : "/register";
   
-      const response = (await apiService.post(endpoint, formattedValues)) as Response;
-      const responseData: { token?: string; id?: string } = await response.json();
-
-
+      // Assume response is already JSON
+      const responseData: { token?: string; id?: string } = await apiService.post(endpoint, formattedValues);
+  
       console.log("📢 API Response:", responseData);
   
       if (!isLoginMode) {
@@ -42,9 +41,9 @@ const AuthForm: React.FC = () => {
   
         await new Promise(resolve => setTimeout(resolve, 1000));
   
-        const loginResponse = (await apiService.post("/login", formattedValues)) as Response;
-        const loginData = (await loginResponse.json()) as { token?: string; id?: string };
-
+        // Assume loginResponse is already JSON
+        const loginData: { token?: string; id?: string } = await apiService.post("/login", formattedValues);
+  
         const authToken = loginData.token || null;
         const userId = loginData.id || null;
   
