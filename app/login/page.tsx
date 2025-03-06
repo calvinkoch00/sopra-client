@@ -48,6 +48,9 @@ const AuthForm: React.FC = () => {
           token: string;
           id: string;
         }
+
+
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         const loginResponse = await apiService.post<LoginResponse>("/login", formattedValues);
         
