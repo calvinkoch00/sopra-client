@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/useApi";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { Button, Card, Form, Input, message } from "antd";
+import process from "node:process";
 
 const AuthForm: React.FC = () => {
   const router = useRouter();
@@ -15,7 +16,12 @@ const AuthForm: React.FC = () => {
 
   const [messageApi, contextHolder] = message.useMessage();
 
-  const handleSubmit = async (values: any) => {
+  interface LoginFormValues {
+    username: string;
+    password: string;
+  }
+  
+  const handleSubmit = async (values: LoginFormValues) => {
     try {
       const formattedValues = {
         username: values.username,
@@ -41,18 +47,22 @@ const AuthForm: React.FC = () => {
           router.push("/users");
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {  // <-- Fix: changed from `any` to `unknown`
       if (process.env.NODE_ENV === "development") {
         console.error("🚨 Login Error:", error);
       }
-    
+  
       let errorMessage = "Something went wrong.";
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message; 
-      } else if (error.message) {
+  
+      if (error instanceof Error) {
         errorMessage = error.message;
+      } else if (typeof error === "object" && error !== null) {
+        const axiosError = error as { response?: { data?: { message?: string } } };
+        if (axiosError.response?.data?.message) {
+          errorMessage = axiosError.response.data.message;
+        }
       }
-
+  
       messageApi.open({
         type: "error",
         content: <span style={{ color: "black" }}>{errorMessage}</span>,

@@ -1,4 +1,5 @@
 import { isProduction } from "@/utils/environment";
+import process from "node:process";
 
 /**
  * Returns the API base URL based on the current environment.

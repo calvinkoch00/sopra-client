@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useApi } from "@/hooks/useApi";
 import { User } from "@/types/user";
 import { Button, Card, Descriptions, Spin, Alert, Input, message } from "antd";
 import { getApiDomain } from "@/utils/domain";
@@ -11,8 +10,7 @@ import "react-datepicker/dist/react-datepicker.css";
 
 const UserProfile: React.FC = () => {
   const router = useRouter();
-  const { id } = useParams(); // ✅ ID from URL
-  const apiService = useApi();
+  const { id } = useParams();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +19,7 @@ const UserProfile: React.FC = () => {
   // ✅ Directly retrieve session data instead of relying on useEffect
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
-  const isOwnProfile = userId && id && userId === id.toString(); // ✅ Fix potential type mismatch
+  const isOwnProfile = userId && id && userId === id.toString();
 
   // Editable fields
   const [editableUsername, setEditableUsername] = useState("");

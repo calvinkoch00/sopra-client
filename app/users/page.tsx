@@ -122,7 +122,7 @@ const Dashboard: React.FC = () => {
               })}
               pagination={{
                 position: ["bottomRight"],
-                itemRender: (page, type, originalElement) => {
+                itemRender: (page, type) => {
                   if (type === "prev") {
                     return <a style={{ color: "white", fontSize: "16px", padding: "4px 10px" }}>←</a>;
                   }
