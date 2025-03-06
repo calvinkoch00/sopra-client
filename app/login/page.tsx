@@ -15,6 +15,8 @@ const AuthForm: React.FC = () => {
 
   const [messageApi, contextHolder] = message.useMessage();
 
+  
+
   interface LoginFormValues {
     username: string;
     password: string;
@@ -26,53 +28,49 @@ const AuthForm: React.FC = () => {
         username: values.username,
         password: values.password,
       };
-
+  
       const endpoint = isLoginMode ? "/login" : "/register";
+  
+      const response = (await apiService.post(endpoint, formattedValues)) as Response;
+      const responseData: { token?: string; id?: string } = await response.json();
 
-      interface AuthResponse {
-        token: string;
-        id: string;
-      }
-      
 
-      const response = await apiService.post<AuthResponse>(endpoint, formattedValues);
-
-      if (response.token) {
-        setToken(response.token);
-        localStorage.setItem("token", response.token);
-        localStorage.setItem("userId", response.id);
-        router.push("/users");
-      }
+      console.log("📢 API Response:", responseData);
+  
       if (!isLoginMode) {
-        interface LoginResponse {
-          token: string;
-          id: string;
-        }
+        console.log("✅ Registration successful, attempting login...");
+  
+        await new Promise(resolve => setTimeout(resolve, 1000));
+  
+        const loginResponse = (await apiService.post("/login", formattedValues)) as Response;
+        const loginData = (await loginResponse.json()) as { token?: string; id?: string };
 
-
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const loginResponse = await apiService.post<LoginResponse>("/login", formattedValues);
-        
-        if (loginResponse.token) {
-          setToken(loginResponse.token);
-          localStorage.setItem("token", loginResponse.token);
-          localStorage.setItem("userId", loginResponse.id);
+        const authToken = loginData.token || null;
+        const userId = loginData.id || null;
+  
+        if (authToken) {
+          setToken(authToken);
+          localStorage.setItem("token", authToken);
+          if (userId) localStorage.setItem("userId", userId);
           router.push("/users");
+        } else {
+          throw new Error("Login failed after registration.");
         }
       } else {
-        if (response.token) {
-          setToken(response.token);
-          localStorage.setItem("token", response.token);
-          localStorage.setItem("userId", response.id);
+        const authToken = responseData.token || null;
+        const userId = responseData.id || null;
+  
+        if (authToken) {
+          setToken(authToken);
+          localStorage.setItem("token", authToken);
+          if (userId) localStorage.setItem("userId", userId);
           router.push("/users");
+        } else {
+          throw new Error("Token not found in response.");
         }
       }
-    } catch (error: unknown) {
-      if (process.env.NODE_ENV === "development") {
-        console.error("🚨 Login Error:", error);
-      }
-  
+    } catch (error) {
+      console.error("🚨 Error:", error);
       let errorMessage = "Something went wrong.";
   
       if (error instanceof Error) {
@@ -90,7 +88,6 @@ const AuthForm: React.FC = () => {
       });
     }
   };
-
   return (
     <div className="auth-container">
       {contextHolder}
